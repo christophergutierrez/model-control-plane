@@ -100,7 +100,15 @@ Dry run (routes and resolves without calling vLLM):
 python3 tools/orchestrate.py /home/chris/models "Show me audience exports" --dry-run --verbose
 ```
 
-The current router is a keyword-matching stub (`tools/router.py`). It will be replaced by a trained model.
+### Router
+
+The orchestrator uses an embedding-based router by default (`tools/router.py:EmbeddingRouter`).
+
+It works by encoding route descriptions (`tools/route_descriptions.json`) and user queries with `all-MiniLM-L6-v2`, then ranking routes by cosine similarity. Confidence is calibrated so that the existing 0.8 clarification threshold works correctly — strong matches score > 0.9, noise scores near 0.
+
+A keyword-matching fallback is available with `--router keyword`.
+
+To add or change route descriptions, edit `tools/route_descriptions.json`. Each key is a route key, each value is a comma-separated list of phrases a user might say.
 
 ### Legacy Orchestrator Stub
 

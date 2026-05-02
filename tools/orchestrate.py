@@ -18,7 +18,7 @@ import urllib.request
 from pathlib import Path
 
 from registry_lib import list_route_keys, load_json, resolve_target, route_json_path
-from router import RouteCandidate, keyword_route
+from router import EmbeddingRouter, RouteCandidate, keyword_route
 
 
 def get_leaf_routes(registry_root: Path) -> list[str]:
@@ -70,6 +70,10 @@ def main() -> int:
     parser.add_argument("--temperature", type=float, default=None)
     parser.add_argument("--threshold", type=float, default=None, help="Override clarification threshold")
     parser.add_argument("--dry-run", action="store_true", help="Route and resolve but don't call vLLM")
+    parser.add_argument("--router", choices=["embedding", "keyword"], default="embedding",
+                        help="Router backend (default: embedding)")
+    parser.add_argument("--descriptions", default=None,
+                        help="Path to route_descriptions.json (default: auto-detect next to this script)")
     parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args()
 
@@ -80,7 +84,14 @@ def main() -> int:
         print("No leaf routes found in registry.", file=sys.stderr)
         return 1
 
-    candidates = keyword_route(args.prompt, leaves)
+    if args.router == "embedding":
+        desc_path = args.descriptions or Path(__file__).parent / "route_descriptions.json"
+        if args.verbose:
+            print("Loading embedding router...", file=sys.stderr)
+        emb_router = EmbeddingRouter(desc_path)
+        candidates = emb_router.route(args.prompt)
+    else:
+        candidates = keyword_route(args.prompt, leaves)
     top = candidates[0] if candidates else None
 
     if args.verbose:

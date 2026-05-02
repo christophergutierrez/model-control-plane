@@ -1,0 +1,19 @@
+{
+  "videoamp/api/audience": "get audience details, single audience, audience information, audience by id, fetch one audience",
+  "videoamp/api/audience-exports": "export audiences, audience export, download audience data, audience export jobs, bulk audience export",
+  "videoamp/api/audience-statuses": "audience status, audience statuses, audience state, is audience ready, audience processing status",
+  "videoamp/api/audiences": "list audiences, all audiences, available audiences, search audiences, browse audiences",
+  "videoamp/api/consents": "consent records, user consents, privacy consents, consent management, consent status",
+  "videoamp/api/currency-of-record": "currency of record, default currency, billing currency, currency setting, what currency",
+  "videoamp/api/episode": "episode details, single episode, get episode, episode by id, fetch one episode, episode info",
+  "videoamp/api/episodes": "list episodes, all episodes, available episodes, search episodes, browse episodes, show episodes",
+  "videoamp/api/me": "my account, my profile, who am i, current user, account info, user details, my information, about me, my user, show my profile, what account am i logged in as",
+  "videoamp/api/measurement": "measurement details, single measurement, get measurement, measurement by id, describe measurement",
+  "videoamp/api/measurements": "list measurements, all measurements, available measurements, search measurements, measurement data",
+  "videoamp/api/media-groups": "media groups, media group list, available media groups, content groups, media categories",
+  "videoamp/api/metric-types": "metric types, available metrics, metric definitions, what metrics, types of metrics, metric categories",
+  "videoamp/api/network": "network details, single network, get network, network by id, describe network, network info",
+  "videoamp/api/networks": "list networks, all networks, available networks, TV networks, broadcast networks, network list",
+  "videoamp/api/program": "program details, single program, get program, program by id, describe program, show program, TV show details",
+  "videoamp/api/programs": "list programs, all programs, available programs, TV programs, TV shows, search programs, browse programs"
+}
