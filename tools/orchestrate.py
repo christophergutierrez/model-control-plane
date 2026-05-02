@@ -197,6 +197,190 @@ def build_routes_status(registry_root: Path, emb_router, leaves: list[str], base
     return routes
 
 
+DASHBOARD_HTML = """\
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Model Control Plane</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+         background: #0d1117; color: #c9d1d9; padding: 24px; }
+  h1 { font-size: 20px; font-weight: 600; margin-bottom: 16px; color: #e6edf3; }
+  .health { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .health-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+                 padding: 12px 20px; min-width: 160px; }
+  .health-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+                        color: #8b949e; margin-bottom: 4px; }
+  .health-card .value { font-size: 24px; font-weight: 600; }
+  .health-card .value.ok { color: #3fb950; }
+  .health-card .value.err { color: #f85149; }
+  table { width: 100%; border-collapse: collapse; background: #161b22;
+          border: 1px solid #30363d; border-radius: 8px; overflow: hidden; }
+  th { text-align: left; padding: 10px 14px; font-size: 11px; text-transform: uppercase;
+       letter-spacing: 0.5px; color: #8b949e; background: #0d1117;
+       border-bottom: 1px solid #30363d; }
+  td { padding: 10px 14px; border-bottom: 1px solid #21262d; font-size: 13px; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #1c2128; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+         margin-right: 8px; vertical-align: middle; }
+  .dot.warm { background: #3fb950; }
+  .dot.cold { background: #8b949e; }
+  .dot.error { background: #f85149; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px;
+         font-weight: 500; }
+  .tag.yes { background: #1a3a2a; color: #3fb950; }
+  .tag.no { background: #3a1a1a; color: #f85149; }
+  .route-key { color: #58a6ff; font-weight: 500; }
+  .mono { font-family: monospace; font-size: 12px; color: #8b949e; }
+  .updated { font-size: 11px; color: #484f58; margin-top: 16px; }
+  .query-box { margin-bottom: 24px; display: flex; gap: 8px; }
+  .query-box input { flex: 1; padding: 8px 12px; background: #0d1117; border: 1px solid #30363d;
+                     border-radius: 6px; color: #c9d1d9; font-size: 14px; font-family: inherit; }
+  .query-box input:focus { outline: none; border-color: #58a6ff; }
+  .query-box button { padding: 8px 16px; background: #238636; border: 1px solid #2ea043;
+                      border-radius: 6px; color: #fff; font-size: 14px; cursor: pointer;
+                      font-weight: 500; }
+  .query-box button:hover { background: #2ea043; }
+  .query-box button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .result-box { background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+                padding: 16px; margin-bottom: 24px; display: none; }
+  .result-box .result-route { font-size: 12px; color: #8b949e; margin-bottom: 6px; }
+  .result-box .result-content { font-size: 14px; color: #e6edf3; white-space: pre-wrap; }
+  .result-box .result-error { color: #f85149; }
+</style>
+</head>
+<body>
+
+<h1>Model Control Plane</h1>
+
+<div class="query-box">
+  <input type="text" id="queryInput" placeholder="Ask a question (e.g. list all programs)" autofocus>
+  <button id="queryBtn" onclick="sendQuery()">Send</button>
+</div>
+<div class="result-box" id="resultBox">
+  <div class="result-route" id="resultRoute"></div>
+  <div class="result-content" id="resultContent"></div>
+</div>
+
+<div class="health" id="health"></div>
+<table>
+  <thead>
+    <tr>
+      <th>Status</th>
+      <th>Route</th>
+      <th>Version</th>
+      <th>Serving</th>
+      <th>Routable</th>
+      <th>Base Model</th>
+    </tr>
+  </thead>
+  <tbody id="routeBody"></tbody>
+</table>
+<div class="updated" id="updated"></div>
+
+<script>
+async function refresh() {
+  try {
+    const [hRes, rRes] = await Promise.all([fetch('/health'), fetch('/routes')]);
+    const health = await hRes.json();
+    const routes = await rRes.json();
+
+    document.getElementById('health').innerHTML = `
+      <div class="health-card">
+        <div class="label">Orchestrator</div>
+        <div class="value ${health.orchestrator === 'ok' ? 'ok' : 'err'}">${health.orchestrator}</div>
+      </div>
+      <div class="health-card">
+        <div class="label">vLLM</div>
+        <div class="value ${health.vllm === 'ok' ? 'ok' : 'err'}">${health.vllm}</div>
+      </div>
+      <div class="health-card">
+        <div class="label">Registered</div>
+        <div class="value ok">${health.routes_registered}</div>
+      </div>
+      <div class="health-card">
+        <div class="label">Serving</div>
+        <div class="value ${health.routes_serving === health.routes_registered ? 'ok' : 'err'}">${health.routes_serving}</div>
+      </div>
+    `;
+
+    const tbody = document.getElementById('routeBody');
+    tbody.innerHTML = routes.routes.map(r => `
+      <tr>
+        <td><span class="dot ${r.status}"></span>${r.status}</td>
+        <td class="route-key">${r.route_key}</td>
+        <td class="mono">${r.version || '-'}</td>
+        <td><span class="tag ${r.serving ? 'yes' : 'no'}">${r.serving ? 'yes' : 'no'}</span></td>
+        <td><span class="tag ${r.routable ? 'yes' : 'no'}">${r.routable ? 'yes' : 'no'}</span></td>
+        <td class="mono">${r.base_model || '-'}</td>
+      </tr>
+    `).join('');
+
+    document.getElementById('updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  } catch (e) {
+    document.getElementById('health').innerHTML =
+      '<div class="health-card"><div class="label">Error</div><div class="value err">fetch failed</div></div>';
+  }
+}
+
+async function sendQuery() {
+  const input = document.getElementById('queryInput');
+  const btn = document.getElementById('queryBtn');
+  const box = document.getElementById('resultBox');
+  const routeEl = document.getElementById('resultRoute');
+  const contentEl = document.getElementById('resultContent');
+  const prompt = input.value.trim();
+  if (!prompt) return;
+
+  btn.disabled = true;
+  box.style.display = 'block';
+  routeEl.textContent = '';
+  contentEl.textContent = 'Routing...';
+  contentEl.className = 'result-content';
+
+  try {
+    const res = await fetch('/', { method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({prompt}) });
+    const data = await res.json();
+
+    if (data.status === 'ok') {
+      routeEl.textContent = `${data.routing.route_key}  v${data.routing.version}  conf=${data.routing.confidence}`;
+      contentEl.textContent = data.response.choices[0].message.content;
+    } else if (data.status === 'clarification') {
+      routeEl.textContent = 'Clarification needed';
+      contentEl.textContent = data.candidates.map(c => `${c.route_key}  (${c.confidence})`).join('\\n');
+      contentEl.className = 'result-content result-error';
+    } else if (data.status === 'dry_run') {
+      routeEl.textContent = 'Dry run';
+      contentEl.textContent = JSON.stringify(data.routing, null, 2);
+    } else {
+      contentEl.textContent = data.message || 'Unknown error';
+      contentEl.className = 'result-content result-error';
+    }
+  } catch (e) {
+    contentEl.textContent = 'Request failed: ' + e.message;
+    contentEl.className = 'result-content result-error';
+  }
+  btn.disabled = false;
+}
+
+document.getElementById('queryInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendQuery();
+});
+
+refresh();
+setInterval(refresh, 10000);
+</script>
+</body>
+</html>
+"""
+
+
 def run_server(registry_root, emb_router, leaves, args):
     from http.server import HTTPServer, BaseHTTPRequestHandler
 
@@ -204,29 +388,36 @@ def run_server(registry_root, emb_router, leaves, args):
         def do_GET(self):
             if self.path == "/routes":
                 routes = build_routes_status(registry_root, emb_router, leaves, args.base_url)
-                self._respond(200, {"routes": routes})
+                self._respond_json(200, {"routes": routes})
             elif self.path == "/health":
                 vllm_models = get_vllm_models(args.base_url)
-                self._respond(200, {
+                self._respond_json(200, {
                     "orchestrator": "ok",
                     "vllm": "ok" if vllm_models else "unreachable",
                     "routes_registered": len(leaves),
                     "routes_serving": len(vllm_models),
                 })
+            elif self.path in ("/", "/dashboard"):
+                payload = DASHBOARD_HTML.encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
             else:
-                self._respond(404, {"error": "not found", "endpoints": ["GET /routes", "GET /health", "POST /"]})
+                self._respond_json(404, {"error": "not found", "endpoints": ["GET /", "GET /routes", "GET /health", "POST /"]})
 
         def do_POST(self):
             length = int(self.headers.get("Content-Length", 0))
             body = json.loads(self.rfile.read(length)) if length else {}
             prompt = body.get("prompt", "")
             if not prompt:
-                self._respond(400, {"error": "missing 'prompt' field"})
+                self._respond_json(400, {"error": "missing 'prompt' field"})
                 return
             result = handle_query(prompt, registry_root, emb_router, leaves, args)
-            self._respond(200, result)
+            self._respond_json(200, result)
 
-        def _respond(self, code, data):
+        def _respond_json(self, code, data):
             payload = json.dumps(data).encode()
             self.send_response(code)
             self.send_header("Content-Type", "application/json")
@@ -240,8 +431,9 @@ def run_server(registry_root, emb_router, leaves, args):
     HTTPServer.allow_reuse_address = True
     server = HTTPServer((args.serve_host, args.serve_port), Handler)
     print(f"Orchestrator serving on http://{args.serve_host}:{args.serve_port}")
-    print(f"  GET  /routes  — route status (warm/cold)")
-    print(f"  GET  /health  — health check")
+    print(f"  GET  /        — dashboard")
+    print(f"  GET  /routes  — route status JSON")
+    print(f"  GET  /health  — health check JSON")
     print(f"  POST /        — query dispatch {{\"prompt\": \"...\"}}")
     try:
         server.serve_forever()
