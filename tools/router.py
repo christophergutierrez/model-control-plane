@@ -89,7 +89,7 @@ class EmbeddingRouter:
         import numpy as np
         from sentence_transformers import SentenceTransformer
 
-        self.model = SentenceTransformer(model_name)
+        self.model = SentenceTransformer(model_name, device="cpu")
         desc_path = Path(descriptions_path)
         descriptions: dict[str, str] = json.loads(desc_path.read_text())
         self.route_keys = list(descriptions.keys())
