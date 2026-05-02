@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/model-control-plane/schemas/manifest.schema.json",
+  "title": "AdapterManifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "route_key",
+    "role",
+    "version",
+    "status",
+    "base_model",
+    "adapter",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "route_key": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$"
+    },
+    "role": {
+      "type": "string",
+      "enum": ["router", "responder"]
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^v[0-9]+$"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["production", "candidate", "deprecated"]
+    },
+    "base_model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "family", "vendor"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "family": { "type": "string", "minLength": 1 },
+        "vendor": { "type": "string", "minLength": 1 }
+      }
+    },
+    "adapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "path", "source"],
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": ["peft-lora"]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "enum": ["local", "hub", "s3", "pbase"]
+        }
+      }
+    },
+    "training": {
+      "type": "object"
+    },
+    "evaluation": {
+      "type": "object"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}

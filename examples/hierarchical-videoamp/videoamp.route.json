@@ -1,0 +1,20 @@
+{
+  "route_key": "videoamp",
+  "kind": "branch",
+  "roles": {
+    "router": {
+      "base_model": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+      "base_family": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+      "serving_pool": "qwen25_coder_1p5b",
+      "clarification_threshold": 0.75,
+      "production": {
+        "version": "v1"
+      },
+      "candidates": []
+    }
+  },
+  "children": [
+    "videoamp/api"
+  ],
+  "status": "active"
+}

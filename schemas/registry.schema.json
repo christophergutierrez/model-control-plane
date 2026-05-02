@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/model-control-plane/schemas/registry.schema.json",
+  "title": "RegistryConfig",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "registry_root",
+    "default_adapter_source",
+    "serving_pools"
+  ],
+  "properties": {
+    "registry_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "default_adapter_source": {
+      "type": "string",
+      "enum": ["local", "hub", "s3", "pbase"]
+    },
+    "serving_pools": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["base_model"],
+        "properties": {
+          "base_model": {
+            "type": "string",
+            "minLength": 1
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

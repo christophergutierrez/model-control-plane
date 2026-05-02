@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "route_key": "videoamp/api/programs",
+  "role": "responder",
+  "version": "v1",
+  "status": "production",
+  "base_model": {
+    "id": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+    "family": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+    "vendor": "Qwen"
+  },
+  "adapter": {
+    "format": "peft-lora",
+    "path": "/home/chris/models/adapters/Qwen/Qwen2.5-Coder-1.5B-Instruct/videoamp/api/programs/responder/v1",
+    "source": "local"
+  },
+  "training": {
+    "dataset": "videoamp synthesized endpoint data",
+    "dataset_version": "2026-05-01"
+  },
+  "evaluation": {
+    "type": "holdout",
+    "primary_metric": "average_similarity",
+    "primary_score": 1.0
+  },
+  "created_at": "2026-05-01T17:44:00Z",
+  "notes": "Example responder manifest."
+}

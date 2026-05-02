@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/model-control-plane/schemas/route.schema.json",
+  "title": "Route",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "route_key",
+    "kind",
+    "roles",
+    "children",
+    "status"
+  ],
+  "properties": {
+    "route_key": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$"
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["branch", "leaf"]
+    },
+    "roles": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "router": {
+          "$ref": "#/$defs/roleConfig"
+        },
+        "responder": {
+          "$ref": "#/$defs/roleConfig"
+        }
+      }
+    },
+    "children": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$"
+      },
+      "uniqueItems": true
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "deprecated"]
+    }
+  },
+  "$defs": {
+    "versionRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^v[0-9]+$"
+        }
+      }
+    },
+    "candidateRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "version", "weight"],
+      "properties": {
+        "label": {
+          "type": "string",
+          "pattern": "^candidate[0-9]+$"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^v[0-9]+$"
+        },
+        "weight": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "roleConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base_model",
+        "base_family",
+        "serving_pool",
+        "clarification_threshold",
+        "production",
+        "candidates"
+      ],
+      "properties": {
+        "base_model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "base_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "serving_pool": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clarification_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "production": {
+          "$ref": "#/$defs/versionRef"
+        },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/candidateRef"
+          }
+        }
+      }
+    }
+  }
+}

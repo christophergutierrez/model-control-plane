@@ -1,0 +1,24 @@
+{
+  "route_key": "videoamp/api/programs",
+  "kind": "leaf",
+  "roles": {
+    "responder": {
+      "base_model": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+      "base_family": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+      "serving_pool": "qwen25_coder_1p5b",
+      "clarification_threshold": 0.8,
+      "production": {
+        "version": "v1"
+      },
+      "candidates": [
+        {
+          "label": "candidate1",
+          "version": "v2",
+          "weight": 10
+        }
+      ]
+    }
+  },
+  "children": [],
+  "status": "active"
+}
