@@ -150,10 +150,72 @@ def run_interactive(registry_root, emb_router, leaves, args):
         print()
 
 
+def get_vllm_models(base_url: str) -> set[str]:
+    try:
+        req = urllib.request.Request(base_url.rstrip("/") + "/v1/models")
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        return {m["id"] for m in data.get("data", []) if m.get("parent")}
+    except Exception:
+        return set()
+
+
+def build_routes_status(registry_root: Path, emb_router, leaves: list[str], base_url: str) -> list[dict]:
+    vllm_models = get_vllm_models(base_url)
+    routable = set(emb_router.route_keys) if emb_router else set()
+
+    routes = []
+    for route_key in leaves:
+        try:
+            resolved = resolve_target(registry_root, route_key, requested_role="responder", selector="production")
+        except Exception:
+            resolved = None
+
+        serving = route_key in vllm_models
+        has_description = route_key in routable
+
+        if serving:
+            status = "warm"
+        elif resolved:
+            status = "cold"
+        else:
+            status = "error"
+
+        entry = {
+            "route_key": route_key,
+            "status": status,
+            "serving": serving,
+            "routable": has_description,
+        }
+        if resolved:
+            entry["version"] = resolved["version"]
+            entry["base_model"] = resolved["base_model"]
+            entry["adapter_path"] = resolved["adapter_path"]
+
+        routes.append(entry)
+
+    return routes
+
+
 def run_server(registry_root, emb_router, leaves, args):
     from http.server import HTTPServer, BaseHTTPRequestHandler
 
     class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path == "/routes":
+                routes = build_routes_status(registry_root, emb_router, leaves, args.base_url)
+                self._respond(200, {"routes": routes})
+            elif self.path == "/health":
+                vllm_models = get_vllm_models(args.base_url)
+                self._respond(200, {
+                    "orchestrator": "ok",
+                    "vllm": "ok" if vllm_models else "unreachable",
+                    "routes_registered": len(leaves),
+                    "routes_serving": len(vllm_models),
+                })
+            else:
+                self._respond(404, {"error": "not found", "endpoints": ["GET /routes", "GET /health", "POST /"]})
+
         def do_POST(self):
             length = int(self.headers.get("Content-Length", 0))
             body = json.loads(self.rfile.read(length)) if length else {}
@@ -178,7 +240,9 @@ def run_server(registry_root, emb_router, leaves, args):
     HTTPServer.allow_reuse_address = True
     server = HTTPServer((args.serve_host, args.serve_port), Handler)
     print(f"Orchestrator serving on http://{args.serve_host}:{args.serve_port}")
-    print(f"  POST /  with {{\"prompt\": \"...\"}}")
+    print(f"  GET  /routes  — route status (warm/cold)")
+    print(f"  GET  /health  — health check")
+    print(f"  POST /        — query dispatch {{\"prompt\": \"...\"}}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
