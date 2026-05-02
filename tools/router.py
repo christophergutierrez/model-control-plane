@@ -10,6 +10,7 @@ The orchestrator depends only on the return type: list[RouteCandidate].
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from dataclasses import dataclass
@@ -83,15 +84,33 @@ class EmbeddingRouter:
         self,
         descriptions_path: str | Path,
         model_name: str = "all-MiniLM-L6-v2",
+        cache_dir: str | Path | None = None,
     ):
+        import numpy as np
         from sentence_transformers import SentenceTransformer
 
         self.model = SentenceTransformer(model_name)
-        descriptions: dict[str, str] = json.loads(Path(descriptions_path).read_text())
+        desc_path = Path(descriptions_path)
+        descriptions: dict[str, str] = json.loads(desc_path.read_text())
         self.route_keys = list(descriptions.keys())
-        self.route_embeddings = self.model.encode(
-            list(descriptions.values()), normalize_embeddings=True,
-        )
+
+        cache_path = self._cache_path(desc_path, model_name, cache_dir)
+        if cache_path.exists():
+            self.route_embeddings = np.load(cache_path)
+        else:
+            self.route_embeddings = self.model.encode(
+                list(descriptions.values()), normalize_embeddings=True,
+            )
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            np.save(cache_path, self.route_embeddings)
+
+    @staticmethod
+    def _cache_path(desc_path: Path, model_name: str, cache_dir: str | Path | None) -> Path:
+        content_hash = hashlib.sha256(desc_path.read_bytes()).hexdigest()[:12]
+        name = f"route_embeddings_{model_name.replace('/', '_')}_{content_hash}.npy"
+        if cache_dir:
+            return Path(cache_dir) / name
+        return desc_path.parent / ".cache" / name
 
     def route(self, query: str) -> list[RouteCandidate]:
         query_emb = self.model.encode([query], normalize_embeddings=True)

@@ -100,11 +100,35 @@ Dry run (routes and resolves without calling vLLM):
 python3 tools/orchestrate.py /home/chris/models "Show me audience exports" --dry-run --verbose
 ```
 
+### Persistent Modes
+
+The embedding router takes a few seconds to load the sentence-transformer model on first invocation. To keep it warm:
+
+**Interactive REPL** — loads the router once, then accepts queries instantly:
+
+```bash
+python3 tools/orchestrate.py /home/chris/models --interactive
+```
+
+**HTTP server** — keeps the router warm and accepts POST requests:
+
+```bash
+python3 tools/orchestrate.py /home/chris/models --serve --serve-port 8080
+```
+
+Then query it:
+
+```bash
+curl -s http://127.0.0.1:8080 -d '{"prompt": "list all programs"}' | python3 -m json.tool
+```
+
 ### Router
 
 The orchestrator uses an embedding-based router by default (`tools/router.py:EmbeddingRouter`).
 
 It works by encoding route descriptions (`tools/route_descriptions.json`) and user queries with `all-MiniLM-L6-v2`, then ranking routes by cosine similarity. Confidence is calibrated so that the existing 0.8 clarification threshold works correctly — strong matches score > 0.9, noise scores near 0.
+
+Route description embeddings are cached to `tools/.cache/` as `.npy` files (keyed by SHA256 of the descriptions file). This avoids re-encoding descriptions on each startup — only the sentence-transformer model load remains.
 
 A keyword-matching fallback is available with `--router keyword`.
 
