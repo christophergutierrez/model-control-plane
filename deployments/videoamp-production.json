@@ -1,0 +1,131 @@
+{
+  "registry_root": "/home/chris/models",
+  "default_adapter_source": "local",
+  "serving_pools": {
+    "qwen25_coder_1p5b": {
+      "base_model": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+      "notes": "Primary pool for current VideoAmp router and endpoint adapters."
+    }
+  },
+  "vendor": "Qwen",
+  "base_model_dir": "Qwen2.5-Coder-1.5B-Instruct",
+  "base_model_id": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+  "base_family": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+  "trainllm_root": "/home/chris/git_home/trainLLM",
+  "routes": {
+    "videoamp": {
+      "kind": "branch",
+      "children": [
+        "videoamp/api"
+      ]
+    },
+    "videoamp/api": {
+      "kind": "branch",
+      "router_adapter": "videoamp-api",
+      "children": [
+        "videoamp/api/audience",
+        "videoamp/api/audience-exports",
+        "videoamp/api/audience-statuses",
+        "videoamp/api/audiences",
+        "videoamp/api/consents",
+        "videoamp/api/currency-of-record",
+        "videoamp/api/episode",
+        "videoamp/api/episodes",
+        "videoamp/api/me",
+        "videoamp/api/measurement",
+        "videoamp/api/measurements",
+        "videoamp/api/media-groups",
+        "videoamp/api/metric-types",
+        "videoamp/api/network",
+        "videoamp/api/networks",
+        "videoamp/api/program",
+        "videoamp/api/programs"
+      ]
+    },
+    "videoamp/api/audience": {
+      "kind": "leaf",
+      "responder_adapter": "videoamp-api-audience",
+      "eval_json": "2026-05-01_1620_videoamp-api-audience.json"
+    },
+    "videoamp/api/audience-exports": {
+      "kind": "leaf",
+      "responder_adapter": "videoamp-api-audience-exports",
+      "eval_json": "2026-05-01_1706_videoamp-api-audience-exports.json"
+    },
+    "videoamp/api/audience-statuses": {
+      "kind": "leaf",
+      "responder_adapter": "videoamp-api-audience-statuses",
+      "eval_json": "2026-05-01_1709_videoamp-api-audience-statuses.json"
+    },
+    "videoamp/api/audiences": {
+      "kind": "leaf",
+      "responder_adapter": "videoamp-api-audiences",
+      "eval_json": "2026-05-01_1712_videoamp-api-audiences.json"
+    },
+    "videoamp/api/consents": {
+      "kind": "leaf",
+      "responder_adapter": "videoamp-api-consents",
+      "eval_json": "2026-05-01_1715_videoamp-api-consents.json"
+    },
+    "videoamp/api/currency-of-record": {
+      "kind": "leaf",
+      "responder_adapter": "videoamp-api-currency-of-record",
+      "eval_json": "2026-05-01_1718_videoamp-api-currency-of-record.json"
+    },
+    "videoamp/api/episode": {
+      "kind": "leaf",
+      "responder_adapter": "videoamp-api-episode",
+      "eval_json": "2026-05-01_1720_videoamp-api-episode.json"
+    },
+    "videoamp/api/episodes": {
+      "kind": "leaf",
+      "responder_adapter": "videoamp-api-episodes",
+      "eval_json": "2026-05-01_1554_videoamp-api-episodes.json"
+    },
+    "videoamp/api/me": {
+      "kind": "leaf",
+      "responder_adapter": "videoamp-api-me",
+      "eval_json": "2026-05-01_1723_videoamp-api-me.json"
+    },
+    "videoamp/api/measurement": {
+      "kind": "leaf",
+      "responder_adapter": "videoamp-api-measurement",
+      "eval_json": "2026-05-01_1725_videoamp-api-measurement.json"
+    },
+    "videoamp/api/measurements": {
+      "kind": "leaf",
+      "responder_adapter": "videoamp-api-measurements",
+      "eval_json": "2026-05-01_1728_videoamp-api-measurements.json"
+    },
+    "videoamp/api/media-groups": {
+      "kind": "leaf",
+      "responder_adapter": "videoamp-api-media-groups",
+      "eval_json": "2026-05-01_1730_videoamp-api-media-groups.json"
+    },
+    "videoamp/api/metric-types": {
+      "kind": "leaf",
+      "responder_adapter": "videoamp-api-metric-types",
+      "eval_json": "2026-05-01_1733_videoamp-api-metric-types.json"
+    },
+    "videoamp/api/network": {
+      "kind": "leaf",
+      "responder_adapter": "videoamp-api-network",
+      "eval_json": "2026-05-01_1735_videoamp-api-network.json"
+    },
+    "videoamp/api/networks": {
+      "kind": "leaf",
+      "responder_adapter": "videoamp-api-networks",
+      "eval_json": "2026-05-01_1738_videoamp-api-networks.json"
+    },
+    "videoamp/api/program": {
+      "kind": "leaf",
+      "responder_adapter": "videoamp-api-program",
+      "eval_json": "2026-05-01_1741_videoamp-api-program.json"
+    },
+    "videoamp/api/programs": {
+      "kind": "leaf",
+      "responder_adapter": "videoamp-api-programs",
+      "eval_json": "2026-05-01_1744_videoamp-api-programs.json"
+    }
+  }
+}
