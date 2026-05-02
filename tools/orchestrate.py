@@ -175,6 +175,7 @@ def run_server(registry_root, emb_router, leaves, args):
         def log_message(self, fmt, *a):
             sys.stderr.write(f"{self.client_address[0]} {fmt % a}\n")
 
+    HTTPServer.allow_reuse_address = True
     server = HTTPServer((args.serve_host, args.serve_port), Handler)
     print(f"Orchestrator serving on http://{args.serve_host}:{args.serve_port}")
     print(f"  POST /  with {{\"prompt\": \"...\"}}")
