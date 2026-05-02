@@ -458,7 +458,7 @@ def main() -> int:
                         help="Path to route_descriptions.json (default: auto-detect next to this script)")
     parser.add_argument("--interactive", action="store_true", help="Interactive REPL mode (keeps router warm)")
     parser.add_argument("--serve", action="store_true", help="Run as HTTP server (keeps router warm)")
-    parser.add_argument("--serve-host", default="127.0.0.1")
+    parser.add_argument("--serve-host", default="0.0.0.0")
     parser.add_argument("--serve-port", type=int, default=8080)
     parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args()
