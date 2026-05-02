@@ -15,7 +15,7 @@ This repository does not store model weights. It defines:
 - JSON schemas for route and manifest files
 - an example top-level `registry.yaml`
 - examples showing minimal and hierarchical route layouts
-- small tools to scaffold and validate a registry
+- tools to scaffold, validate, launch, route, and manage rollout for a registry
 
 ## What Does Not Live Here
 
@@ -78,6 +78,8 @@ The current backend direction in this repository is:
 - one base model per process
 - many static LoRA modules loaded at startup
 - logical route keys exposed directly as OpenAI `model` names
+- a router classifies user queries to route keys with confidence scores
+- an orchestrator dispatches to the correct LoRA adapter or asks for clarification
 
 See [docs/vllm.md](docs/vllm.md) for the concrete integration.
 
