@@ -14,6 +14,8 @@ This document describes the expected workflow for a human operator or coding age
 3. Define one or more serving pools in `registry.yaml`.
 4. Add routes and version manifests only for models that actually exist.
 
+For the current reference backend, see [vllm.md](vllm.md).
+
 ## Adding a Route
 
 1. Decide the canonical `route_key`.
@@ -55,3 +57,12 @@ This repository defines the contract, but it does not replace judgment about:
 - when a candidate should be promoted
 - which serving pool should own a route
 - what clarification experience is best for end users
+
+## Agent Guidance
+
+If a coding agent is operating this repository or the runtime registry:
+
+1. start with [architecture.md](architecture.md)
+2. then read [ai-getting-started.md](ai-getting-started.md)
+3. validate the registry before changing rollout policy
+4. prefer changing route metadata over changing immutable version directories

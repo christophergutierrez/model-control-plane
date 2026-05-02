@@ -64,10 +64,22 @@ Only create route and adapter directories that actually exist for that deploymen
 ## Quick Start
 
 1. Read [docs/architecture.md](docs/architecture.md).
-2. Copy [examples/registry.yaml](examples/registry.yaml) to your target machine as `<registry_root>/registry.yaml`.
-3. Use `tools/scaffold.py` to create the minimum route and adapter directories you need.
-4. Place adapter artifacts into the scaffolded version directories.
-5. Run `tools/validate.py <registry_root>` before wiring the registry into an orchestrator or serving pool.
+2. Read [docs/ai-getting-started.md](docs/ai-getting-started.md) if you are a coding agent or are using one.
+3. Copy [examples/registry.yaml](examples/registry.yaml) to your target machine as `<registry_root>/registry.yaml`.
+4. Use `tools/scaffold.py` to create the minimum route and adapter directories you need.
+5. Place adapter artifacts into the scaffolded version directories.
+6. Run `tools/validate.py <registry_root>` before wiring the registry into an orchestrator or serving pool.
+
+## Current Serving Direction
+
+The current backend direction in this repository is:
+
+- `vLLM` as the serving runtime
+- one base model per process
+- many static LoRA modules loaded at startup
+- logical route keys exposed directly as OpenAI `model` names
+
+See [docs/vllm.md](docs/vllm.md) for the concrete integration.
 
 ## Design Goals
 

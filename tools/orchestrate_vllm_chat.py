@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Minimal orchestrator stub for registry-backed LoRAX chat requests."""
+"""Minimal orchestrator stub for registry-backed vLLM chat requests."""
 
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ def main() -> int:
     parser.add_argument("prompt", help="User prompt")
     parser.add_argument("--selector", default="production", help="production, version:vN, or candidate:candidateN")
     parser.add_argument("--role", choices=["router", "responder"], default="responder")
-    parser.add_argument("--base-url", default="http://127.0.0.1:8080")
+    parser.add_argument("--base-url", default="http://127.0.0.1:8000")
     parser.add_argument("--system", default=None, help="Optional system prompt")
     parser.add_argument("--max-tokens", type=int, default=256)
     parser.add_argument("--temperature", type=float, default=None)
@@ -52,8 +52,7 @@ def main() -> int:
     )
 
     payload = {
-        "model": resolved["adapter_path"],
-        "adapter_source": resolved["adapter_source"],
+        "model": resolved["route_key"],
         "messages": build_messages(args.system, args.prompt),
         "max_tokens": args.max_tokens,
     }

@@ -51,8 +51,7 @@ A runtime that serves one base model family and one or more compatible adapters.
 
 Examples include:
 
-- LoRAX
-- vLLM plus custom adapter logic
+- vLLM plus static or dynamic adapter logic
 
 ### Model Registry
 

@@ -15,6 +15,10 @@ def route_json_path(registry_root: Path, route_key: str) -> Path:
     return registry_root / "routes" / Path(route_key) / "route.json"
 
 
+def iter_route_json_paths(registry_root: Path) -> list[Path]:
+    return sorted((registry_root / "routes").glob("**/route.json"))
+
+
 def manifest_path(
     registry_root: Path,
     vendor: str,
@@ -99,3 +103,26 @@ def resolve_target(
         "adapter_source": manifest["adapter"]["source"],
         "manifest": manifest,
     }
+
+
+def list_route_keys(registry_root: Path) -> list[str]:
+    base = registry_root / "routes"
+    return sorted(str(path.parent.relative_to(base)) for path in iter_route_json_paths(registry_root))
+
+
+def list_production_targets(
+    registry_root: Path,
+    *,
+    role: str = "responder",
+    base_model: str | None = None,
+) -> list[dict]:
+    targets: list[dict] = []
+    for route_key in list_route_keys(registry_root):
+        route_data = load_json(route_json_path(registry_root, route_key))
+        if role not in route_data.get("roles", {}):
+            continue
+        resolved = resolve_target(registry_root, route_key, requested_role=role, selector="production")
+        if base_model is not None and resolved["base_model"] != base_model:
+            continue
+        targets.append(resolved)
+    return targets
