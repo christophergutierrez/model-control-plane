@@ -25,6 +25,14 @@ from pathlib import Path
 from registry_lib import list_route_keys, load_json, resolve_target, route_json_path
 from router import EmbeddingRouter, RouteCandidate, keyword_route
 
+SYSTEM_PROMPT = (
+    "You are a VideoAmp API assistant. "
+    "Given a natural language request, respond with the correct API call "
+    "as a JSON object inside a code block. "
+    "The JSON must have an \"endpoint\" field (e.g. \"GET /v1/audiences\") "
+    "and a \"params\" field containing the query or path parameters."
+)
+
 
 def get_leaf_routes(registry_root: Path) -> list[str]:
     leaves: list[str] = []
@@ -104,10 +112,11 @@ def handle_query(
     if args.dry_run:
         return {"status": "dry_run", "routing": routing}
 
-    messages: list[dict[str, str]] = []
-    if args.system:
-        messages.append({"role": "system", "content": args.system})
-    messages.append({"role": "user", "content": prompt})
+    system = args.system if args.system else SYSTEM_PROMPT
+    messages: list[dict[str, str]] = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": prompt},
+    ]
 
     payload = {
         "model": resolved["route_key"],
