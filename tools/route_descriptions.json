@@ -4,6 +4,7 @@
   "videoamp/api/audience-statuses": "audience status, audience statuses, audience state, is audience ready, audience processing status",
   "videoamp/api/audiences": "list audiences, all audiences, available audiences, search audiences, browse audiences",
   "videoamp/api/consents": "consent records, user consents, privacy consents, consent management, consent status",
+  "videoamp/api/content-metric": "content metric, content metrics, get content metric, content metric by id, fetch content metric",
   "videoamp/api/currency-of-record": "currency of record, default currency, billing currency, currency setting, what currency",
   "videoamp/api/episode": "episode details, single episode, get episode, episode by id, fetch one episode, episode info",
   "videoamp/api/episodes": "list episodes, all episodes, available episodes, search episodes, browse episodes, show episodes",

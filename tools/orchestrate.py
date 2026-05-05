@@ -23,7 +23,7 @@ import urllib.request
 from pathlib import Path
 
 from registry_lib import list_route_keys, load_json, resolve_target, route_json_path
-from router import EmbeddingRouter, RouteCandidate, keyword_route
+from router import EmbeddingRouter, LoRARouter, RouteCandidate, keyword_route
 
 SYSTEM_PROMPT = (
     "You are a VideoAmp API assistant. "
@@ -461,7 +461,7 @@ def main() -> int:
     parser.add_argument("--temperature", type=float, default=None)
     parser.add_argument("--threshold", type=float, default=None, help="Override clarification threshold")
     parser.add_argument("--dry-run", action="store_true", help="Route and resolve but don't call vLLM")
-    parser.add_argument("--router", choices=["embedding", "keyword"], default="embedding",
+    parser.add_argument("--router", choices=["embedding", "keyword", "lora"], default="embedding",
                         help="Router backend (default: embedding)")
     parser.add_argument("--descriptions", default=None,
                         help="Path to route_descriptions.json (default: auto-detect next to this script)")
@@ -485,6 +485,10 @@ def main() -> int:
         print("Loading embedding router...", file=sys.stderr)
         emb_router = EmbeddingRouter(desc_path)
         print("Router ready.", file=sys.stderr)
+    elif args.router == "lora":
+        print("Using LoRA router (vLLM adapter)...", file=sys.stderr)
+        emb_router = LoRARouter(base_url=args.base_url)
+        emb_router.set_route_keys(leaves)
 
     if args.serve:
         run_server(registry_root, emb_router, leaves, args)

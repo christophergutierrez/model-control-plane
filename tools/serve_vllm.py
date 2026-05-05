@@ -38,6 +38,12 @@ def main() -> int:
     anchor = resolve_target(registry_root, args.route_key, requested_role=args.role, selector="production")
     targets = list_production_targets(registry_root, role=args.role, base_model=anchor["base_model"])
 
+    # Also load router adapter if available (for LoRA-based routing)
+    router_targets = list_production_targets(registry_root, role="router", base_model=anchor["base_model"])
+    for rt in router_targets:
+        if rt["route_key"] not in {t["route_key"] for t in targets}:
+            targets.append(rt)
+
     if not targets:
         raise SystemExit(f"No production targets found for role={args.role} base_model={anchor['base_model']}")
 
