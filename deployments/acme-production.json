@@ -1,0 +1,44 @@
+{
+  "registry_root": "/path/to/models",
+  "default_adapter_source": "local",
+  "serving_pools": {
+    "qwen25_coder_1p5b": {
+      "base_model": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+      "notes": "Primary pool for router and endpoint adapters."
+    }
+  },
+  "vendor": "Qwen",
+  "base_model_dir": "Qwen2.5-Coder-1.5B-Instruct",
+  "base_model_id": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+  "base_family": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+  "trainllm_root": "/path/to/trainLLM",
+  "routes": {
+    "acme": {
+      "kind": "branch",
+      "children": [
+        "acme/api"
+      ]
+    },
+    "acme/api": {
+      "kind": "branch",
+      "router_adapter": "acme-api",
+      "children": [
+        "acme/api/products",
+        "acme/api/orders",
+        "acme/api/customers"
+      ]
+    },
+    "acme/api/products": {
+      "kind": "leaf",
+      "responder_adapter": "acme-api-products"
+    },
+    "acme/api/orders": {
+      "kind": "leaf",
+      "responder_adapter": "acme-api-orders"
+    },
+    "acme/api/customers": {
+      "kind": "leaf",
+      "responder_adapter": "acme-api-customers"
+    }
+  }
+}

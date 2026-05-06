@@ -1,5 +1,5 @@
 {
-  "route_key": "videoamp/api/programs",
+  "route_key": "acme/api/products",
   "kind": "leaf",
   "roles": {
     "responder": {

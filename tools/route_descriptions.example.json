@@ -1,0 +1,5 @@
+{
+  "acme/api/products": "product details, single product, get product, product by id, fetch one product, product info",
+  "acme/api/orders": "list orders, all orders, order history, search orders, recent orders",
+  "acme/api/customers": "customer details, single customer, get customer, customer by id, customer info"
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a concrete VideoAmp registry from current trainLLM artifacts."""
+"""Generate a concrete registry from a deployment spec and trainLLM artifacts."""
 
 from __future__ import annotations
 
@@ -81,14 +81,16 @@ def make_manifest(
             "source": "local"
         },
         "evaluation": evaluation,
-        "created_at": "2026-05-01T00:00:00Z",
+        "created_at": "2026-01-01T00:00:00Z",
         "notes": "Promoted from trainLLM artifacts into the model registry."
     }
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("deployment_spec", help="Path to deployments/videoamp-production.json")
+    parser.add_argument("deployment_spec", help="Path to deployment spec JSON")
+    parser.add_argument("--router-route", default=None,
+                        help="Route key that holds the router adapter (e.g. acme/api)")
     args = parser.parse_args()
 
     spec_path = Path(args.deployment_spec).expanduser().resolve()
@@ -111,16 +113,17 @@ def main() -> int:
         "serving_pools:\n"
         "  qwen25_coder_1p5b:\n"
         f"    base_model: {base_model_id}\n"
-        "    notes: Primary pool for current VideoAmp router and endpoint adapters.\n"
+        "    notes: Primary serving pool.\n"
     )
     (registry_root / "registry.yaml").write_text(registry_yaml)
 
     for route_key, route_spec in spec["routes"].items():
         roles: dict = {}
-        if route_key == "videoamp/api" and route_spec.get("router_adapter"):
+        if route_spec.get("router_adapter"):
             roles["router"] = make_role_config(base_model_id, base_family, 0.75)
         if route_spec.get("responder_adapter"):
-            roles["responder"] = make_role_config(base_model_id, base_family, 0.8)
+            threshold = route_spec.get("clarification_threshold", 0.8)
+            roles["responder"] = make_role_config(base_model_id, base_family, threshold)
 
         write_json(
             route_dir(registry_root, route_key) / "route.json",
@@ -133,7 +136,7 @@ def main() -> int:
             },
         )
 
-        if route_key == "videoamp/api" and route_spec.get("router_adapter"):
+        if route_spec.get("router_adapter"):
             src = trainllm_root / "lora" / route_spec["router_adapter"] / "final"
             dst = adapter_version_dir(registry_root, vendor, base_model_dir, route_key, "router")
             copy_adapter_tree(src, dst)
@@ -147,11 +150,17 @@ def main() -> int:
             dst = adapter_version_dir(registry_root, vendor, base_model_dir, route_key, "responder")
             copy_adapter_tree(src, dst)
 
-            eval_json_path = trainllm_root / "evals" / route_spec["eval_json"]
-            eval_md_path = eval_json_path.with_suffix(".md")
-            eval_data = load_json(eval_json_path)
-            shutil.copy2(eval_json_path, dst / "eval.json")
-            shutil.copy2(eval_md_path, dst / "eval.md")
+            eval_json_name = route_spec.get("eval_json")
+            eval_data = None
+            if eval_json_name:
+                eval_json_path = trainllm_root / "evals" / eval_json_name
+                if eval_json_path.exists():
+                    eval_data = load_json(eval_json_path)
+                    shutil.copy2(eval_json_path, dst / "eval.json")
+                    eval_md_path = eval_json_path.with_suffix(".md")
+                    if eval_md_path.exists():
+                        shutil.copy2(eval_md_path, dst / "eval.md")
+
             write_json(
                 dst / "manifest.json",
                 make_manifest(route_key, "responder", dst, base_model_id, base_family, vendor, eval_data),

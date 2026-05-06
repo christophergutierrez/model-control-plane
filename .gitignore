@@ -2,3 +2,9 @@ __pycache__/
 *.pyc
 .cache/
 tmp/
+unsloth_compiled_cache/
+*videoamp*
+tools/route_descriptions.json
+tools/orchestrate.py
+tools/retrain_all.py
+tools/router.py

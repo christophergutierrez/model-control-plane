@@ -1,5 +1,5 @@
 {
-  "route_key": "videoamp",
+  "route_key": "acme",
   "kind": "branch",
   "roles": {
     "router": {
@@ -14,7 +14,7 @@
     }
   },
   "children": [
-    "videoamp/api"
+    "acme/api"
   ],
   "status": "active"
 }
