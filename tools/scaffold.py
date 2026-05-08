@@ -10,7 +10,7 @@ from pathlib import Path
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("registry_root", help="Path to the registry root on the server")
-    parser.add_argument("route_key", help="Logical route key, e.g. videoamp/api/programs")
+    parser.add_argument("route_key", help="Logical route key, e.g. acme/api/products")
     parser.add_argument("role", choices=["router", "responder"], help="Model role")
     parser.add_argument("vendor", help="Base model vendor directory, e.g. Qwen")
     parser.add_argument("base_model_dir", help="Base model directory name, e.g. Qwen2.5-Coder-1.5B-Instruct")

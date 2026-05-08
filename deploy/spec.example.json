@@ -1,0 +1,26 @@
+{
+  "trainllm_root": "~/git_home/trainLLM",
+  "trainllm_python": "~/.unsloth/studio/unsloth_studio/bin/python3",
+  "registry_root": "~/models",
+
+  "endpoints": {
+    "videoamp/api/audiences": {
+      "config": "~/git_home/trainLLM/data/videoamp_runs/audiences/config.yaml",
+      "adapter_name": "videoamp-api-audiences",
+      "role": "responder"
+    },
+    "videoamp/api/measurements": {
+      "config": "~/git_home/trainLLM/data/videoamp_runs/measurements/config.yaml",
+      "adapter_name": "videoamp-api-measurements",
+      "role": "responder"
+    }
+  },
+
+  "router": {
+    "config": "~/git_home/trainLLM/data/videoamp_runs/router/config.yaml",
+    "adapter_name": "videoamp-api-router",
+    "route_key": "videoamp/api"
+  },
+
+  "merge_route": "videoamp/api-merged"
+}

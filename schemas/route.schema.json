@@ -114,6 +114,11 @@
           "items": {
             "$ref": "#/$defs/candidateRef"
           }
+        },
+        "serving_mode": {
+          "type": "string",
+          "enum": ["lora", "merged"],
+          "default": "lora"
         }
       }
     }

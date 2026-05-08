@@ -13,7 +13,7 @@ from registry_lib import resolve_target
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("registry_root", help="Path to the registry root")
-    parser.add_argument("route_key", help="Logical route key, e.g. videoamp/api/programs")
+    parser.add_argument("route_key", help="Logical route key, e.g. acme/api/products")
     parser.add_argument("--role", choices=["router", "responder"], help="Explicit role to resolve")
     parser.add_argument(
         "--selector",

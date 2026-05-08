@@ -8,3 +8,8 @@ tools/route_descriptions.json
 tools/orchestrate.py
 tools/retrain_all.py
 tools/router.py
+tools/launch_vllm.sh
+tools/test_all_routes.py
+tools/orchestrate_vllm_chat.py
+deploy/*.json
+!deploy/spec.example.json

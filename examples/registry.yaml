@@ -1,6 +1,6 @@
-registry_root: /home/chris/models
+registry_root: /path/to/models
 default_adapter_source: local
 serving_pools:
   qwen25_coder_1p5b:
     base_model: Qwen/Qwen2.5-Coder-1.5B-Instruct
-    notes: Primary pool for VideoAmp routing and API endpoint adapters.
+    notes: Primary pool for routing and API endpoint adapters.

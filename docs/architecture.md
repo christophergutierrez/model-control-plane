@@ -21,18 +21,15 @@ It defines:
 
 ### Router
 
-A trained model that predicts a route target and a confidence score.
+A trained LoRA adapter that classifies user queries to route keys. The router does more than simple classification — it can determine multi-step execution plans when a query requires chaining endpoints (e.g. fetching an ID before looking up details).
 
-Expected output shape:
+The router does not rewrite or improve the user query. The original query is passed verbatim to the matched responder adapter.
 
-```json
-{
-  "route_key": "videoamp/api/programs",
-  "confidence": 0.96
-}
-```
+Three router implementations are available:
 
-The router does not decide rollout, clarification wording, or serving backend.
+- **LoRA router** — a fine-tuned adapter served alongside responders via vLLM multi-LoRA. Outputs a route key directly as text. Supports multi-step chain detection.
+- **Embedding router** — encodes route descriptions and user queries with a sentence-transformer, ranks by cosine similarity.
+- **Hybrid router** — tries the LoRA router first, falls back to embedding on low confidence.
 
 ### Orchestrator
 
@@ -45,13 +42,13 @@ A non-LLM control layer that:
 - applies rollout policy
 - dispatches to the correct serving pool
 
+The orchestrator can run as a one-shot CLI, an interactive REPL, or an HTTP server with a web dashboard.
+
 ### Serving Pool
 
-A runtime that serves one base model family and one or more compatible adapters.
+A runtime that serves one base model family and one or more compatible adapters via vLLM multi-LoRA serving.
 
-Examples include:
-
-- vLLM plus static or dynamic adapter logic
+One vLLM process loads a single base model and registers all production LoRA adapters (both router and responders) at startup. Each adapter is addressable by its route key as the OpenAI `model` name.
 
 ### Model Registry
 
@@ -68,23 +65,18 @@ Routes are logical identifiers. They are not file paths for weights.
 Canonical example:
 
 ```text
-videoamp/api/programs
+acme/api/products
 ```
 
 Routes may be:
 
-- branch routes
-- leaf routes
+- branch routes — contain child routes and typically expose a `router` role
+- leaf routes — terminal endpoints that expose a `responder` role
 
 Routes may expose one or more roles:
 
 - `router`
 - `responder`
-
-Common convention:
-
-- non-leaf routes usually expose `router`
-- leaf routes usually expose `responder`
 
 ## Artifact Model
 
@@ -93,12 +85,12 @@ Physical adapter artifacts are stored by base model, then by route, then by role
 Example:
 
 ```text
-<registry_root>/adapters/Qwen/Qwen2.5-Coder-1.5B-Instruct/videoamp/api/programs/responder/v1/
+<registry_root>/adapters/Qwen/Qwen2.5-Coder-1.5B-Instruct/acme/api/products/responder/v1/
 ```
 
 Each version directory contains:
 
-- adapter files
+- adapter files (`adapter_model.safetensors`, `adapter_config.json`, etc.)
 - `manifest.json`
 - optional human-readable notes and eval artifacts
 
@@ -127,4 +119,4 @@ Examples:
 
 - `/srv/models`
 - `/opt/models`
-- `/home/chris/models`
+- `~/models`

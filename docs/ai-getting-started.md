@@ -9,7 +9,7 @@ Understand the repository fast enough to:
 - locate the machine-local model registry
 - validate it
 - resolve a logical route to a concrete production adapter
-- launch the current reference serving backend
+- launch the serving backend
 
 ## Read Order
 
@@ -22,64 +22,61 @@ Do not start by reading every example or schema file unless you are changing the
 
 ## Key Concepts
 
-- A `route_key` is a logical identifier such as `videoamp/api/programs`.
+- A `route_key` is a logical identifier such as `acme/api/products`.
 - The registry root is machine-local and configurable.
 - Route metadata lives under `routes/`.
 - Adapter artifacts live under `adapters/`.
 - Version directories such as `v1` are immutable.
 - Rollout changes happen in `route.json`, not by editing old artifacts.
+- The router is itself a LoRA adapter served via vLLM multi-LoRA alongside responders.
+- The router can determine multi-step execution plans, not just single-endpoint classification.
 
 ## Important Files
 
-- `tools/registry_lib.py`
-  Resolves a route key to its production target.
-- `tools/resolve_route.py`
-  Prints one resolved target from the registry.
-- `tools/validate.py`
-  Validates the registry contract.
-- `tools/serve_vllm.py`
-  Builds and runs the current `vLLM` multi-LoRA launch command.
-- `tools/orchestrate_vllm_chat.py`
-  Sends a route-key-based OpenAI chat request to the running server.
+- `tools/registry_lib.py` — resolves a route key to its production target.
+- `tools/resolve_route.py` — prints one resolved target from the registry.
+- `tools/validate.py` — validates the registry contract.
+- `tools/serve_vllm.py` — builds and runs the vLLM multi-LoRA launch command.
+- `tools/orchestrate.py` — full dispatch: query -> router -> confidence check -> registry -> vLLM.
 
 ## Current Reference Flow
 
 1. Registry stores route metadata and adapter versions.
-2. Orchestrator resolves a route key from the registry.
-3. `vLLM` serves one base model plus many named LoRA adapters.
-4. The request `model` field is the route key itself.
+2. `serve_vllm.py` launches vLLM with all production adapters (router + responders).
+3. Orchestrator invokes the router adapter to classify the query to a route key.
+4. Orchestrator resolves the route key to a versioned adapter via the registry.
+5. Orchestrator dispatches to the matched responder adapter using its route key as the OpenAI `model` name.
 
 Example:
 
-- route key: `videoamp/api/programs`
+- route key: `acme/api/products`
 - base model: `Qwen/Qwen2.5-Coder-1.5B-Instruct`
-- adapter path:
-  `/home/chris/models/adapters/Qwen/Qwen2.5-Coder-1.5B-Instruct/videoamp/api/programs/responder/v1`
+- adapter path: `<registry_root>/adapters/Qwen/Qwen2.5-Coder-1.5B-Instruct/acme/api/products/responder/v1`
 
 ## Minimal Commands
 
 Validate a registry:
 
 ```bash
-python3 tools/validate.py /home/chris/models
+python3 tools/validate.py <registry_root>
 ```
 
 Resolve one route:
 
 ```bash
-python3 tools/resolve_route.py /home/chris/models videoamp/api/programs
+python3 tools/resolve_route.py <registry_root> acme/api/products
 ```
 
-Preview the current `vLLM` launch command:
+Preview the vLLM launch command:
 
 ```bash
-python3 tools/serve_vllm.py /home/chris/models videoamp/api/programs --print-only
+python3 tools/serve_vllm.py <registry_root> acme/api/products --print-only
 ```
 
-Send one request once the server is up:
+Run the full orchestrator:
 
 ```bash
-python3 tools/orchestrate_vllm_chat.py /home/chris/models videoamp/api/programs "List 5 programs" --base-url http://127.0.0.1:8000 --print-payload
+python3 tools/orchestrate.py <registry_root> "List 5 products" --router lora
 ```
 
 ## Rules of Thumb
@@ -92,10 +89,8 @@ python3 tools/orchestrate_vllm_chat.py /home/chris/models videoamp/api/programs 
 
 ## Current Reality
 
-As of the current setup:
+- vLLM multi-LoRA is the active serving backend.
+- `--enforce-eager` may be needed depending on your vLLM build and GPU.
+- The router adapter runs inside the same vLLM process as all responders.
 
-- `vLLM` is the active backend direction.
-- `LoRAX` was explored and then removed because it was a poor fit for this host/runtime combination.
-- `vLLM` on this machine may need `--enforce-eager` during bring-up.
-
-If you are picking up future work, start from the `vLLM` path unless new evidence says otherwise.
+If you are picking up future work, start from the vLLM multi-LoRA path unless new evidence says otherwise.

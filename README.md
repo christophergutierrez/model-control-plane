@@ -1,6 +1,6 @@
 # model-control-plane
 
-Control-plane contract for local model registries used to serve base models, adapters, and route metadata on a machine.
+Control-plane contract for local model registries used to serve base models, LoRA adapters, and route metadata on a machine.
 
 This repository does not store model weights. It defines:
 
@@ -22,13 +22,10 @@ This repository does not store model weights. It defines:
 - base model weights
 - adapter weights
 - runtime secrets
+- deployment-specific configuration
 - generated runtime state that is specific to one machine
 
-Those belong in a configurable registry root on the server, for example:
-
-- `/srv/models`
-- `/opt/models`
-- `/home/chris/models`
+Those belong in a configurable registry root on the server.
 
 ## Core Ideas
 
@@ -36,7 +33,7 @@ Those belong in a configurable registry root on the server, for example:
 - Logical routes are separate from physical adapter artifacts.
 - Artifact versions are immutable.
 - Rollout policy is mutable.
-- The router model predicts `route_key + confidence`.
+- A router adapter classifies user queries to route keys and can determine multi-step execution plans.
 - The orchestrator decides clarification, version selection, and traffic split.
 
 ## Repository Layout
@@ -46,6 +43,7 @@ docs/
 schemas/
 examples/
 tools/
+deployments/
 ```
 
 ## Server Registry Layout
@@ -70,15 +68,15 @@ Only create route and adapter directories that actually exist for that deploymen
 5. Place adapter artifacts into the scaffolded version directories.
 6. Run `tools/validate.py <registry_root>` before wiring the registry into an orchestrator or serving pool.
 
-## Current Serving Direction
+## Serving Backend
 
-The current backend direction in this repository is:
+The current backend is vLLM multi-LoRA serving:
 
-- `vLLM` as the serving runtime
-- one base model per process
-- many static LoRA modules loaded at startup
+- one base model per vLLM process
+- many LoRA adapters loaded at startup (router + responders)
 - logical route keys exposed directly as OpenAI `model` names
-- a router classifies user queries to route keys with confidence scores
+- a router adapter classifies user queries to route keys with confidence scores
+- the router can plan multi-step endpoint chains, not just single classifications
 - an orchestrator dispatches to the correct LoRA adapter or asks for clarification
 
 See [docs/vllm.md](docs/vllm.md) for the concrete integration.

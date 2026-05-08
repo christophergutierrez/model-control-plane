@@ -52,7 +52,7 @@
       "properties": {
         "format": {
           "type": "string",
-          "enum": ["peft-lora"]
+          "enum": ["peft-lora", "merged-full"]
         },
         "path": {
           "type": "string",
@@ -61,6 +61,18 @@
         "source": {
           "type": "string",
           "enum": ["local", "hub", "s3", "pbase"]
+        },
+        "merge_config": {
+          "type": "object",
+          "properties": {
+            "method": { "type": "string" },
+            "density": { "type": "number" },
+            "normalize": { "type": "boolean" },
+            "source_adapters": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
         }
       }
     },

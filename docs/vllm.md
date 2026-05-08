@@ -1,145 +1,100 @@
-# vLLM
+# vLLM Multi-LoRA Serving
 
-This repository integrates with `vLLM` by resolving logical routes from the registry into named static LoRA modules.
+This repository integrates with vLLM's multi-LoRA serving to host one base model with many LoRA adapters loaded simultaneously.
 
-The intended shape is:
+## Architecture
 
-- one `vLLM` process per base model family
-- one shared base model per process
-- many static LoRA modules registered at startup
-- requests routed by logical route key, using that same route key as the OpenAI `model`
+- One vLLM process per base model family
+- One shared base model per process
+- Many LoRA adapters registered at startup (router + all responders)
+- Each adapter is addressable by its route key as the OpenAI `model` name
+- The router adapter runs inside the same vLLM process as the responders
 
-## Current Integration
+## Launch
 
-Launch and test scripts:
-
-- `tools/launch_vllm.sh` — one-command server start with pinned environment
-- `tools/serve_vllm.py` — builds the vLLM command from the registry
-- `tools/test_vllm_chat.py` — sends a single route-keyed chat request
-- `tools/test_all_routes.py` — exercises all production responder routes
-- `tools/orchestrate.py` — full dispatch: query → router → confidence check → registry → vLLM
-
-The current reference deployment on this machine uses:
-
-- base model `Qwen/Qwen2.5-Coder-1.5B-Instruct`
-- production responder routes under `/home/chris/models`
-- eager mode during bring-up because compile mode failed in the local `vLLM` environment
-- `HF_HOME` must point to the expanded path where the model is cached
-
-## Route Resolution
-
-Resolve a production target:
+Build and run the vLLM command from the registry:
 
 ```bash
-python3 tools/resolve_route.py /home/chris/models videoamp/api/programs
+python3 tools/serve_vllm.py <registry_root> <anchor_route> --port 8000
 ```
 
-This returns:
-
-- route key
-- role
-- selected version
-- base model
-- serving pool
-- adapter path
-
-## Launching vLLM
-
-Quickest path:
-
-```bash
-tools/launch_vllm.sh
-```
-
-This sets `HF_HOME`, activates the venv, and runs `serve_vllm.py` with the pinned flags.
-
-Manual equivalent:
-
-```bash
-python3 tools/serve_vllm.py /home/chris/models videoamp/api/programs --role responder --port 8000 --dtype bfloat16 -- --enforce-eager
-```
+The anchor route (e.g. `acme/api/products`) identifies the base model family. All production adapters sharing that base model are auto-discovered and loaded.
 
 Preview without launching:
 
 ```bash
-python3 tools/serve_vllm.py /home/chris/models videoamp/api/programs --role responder --print-only
+python3 tools/serve_vllm.py <registry_root> <anchor_route> --print-only
 ```
 
-This wrapper derives:
-
-- the shared base model
-- the full list of production responder adapters for that base model
-- one `--lora-modules` entry per route, using the route key as the LoRA model name
-
-## Testing a Route
-
-Once `vLLM` is running:
+Extra vLLM flags go after `--`:
 
 ```bash
-python3 tools/test_vllm_chat.py /home/chris/models videoamp/api/programs "List 5 programs"
+python3 tools/serve_vllm.py <registry_root> <anchor_route> --port 8000 -- --enforce-eager
 ```
 
-This sends a `v1/chat/completions` request with:
+## Route Resolution
 
-- `model` set to the logical route key, for example `videoamp/api/programs`
-- OpenAI-compatible chat messages
+Resolve a production target from the registry:
+
+```bash
+python3 tools/resolve_route.py <registry_root> acme/api/products
+```
+
+Returns: route key, role, selected version, base model, serving pool, and adapter path.
 
 ## Orchestrator
 
-The orchestrator handles the full dispatch loop: query → route classification → confidence check → registry resolution → vLLM dispatch.
+The orchestrator handles the full dispatch loop: query -> router -> confidence check -> registry resolution -> vLLM dispatch.
 
 ```bash
-python3 tools/orchestrate.py /home/chris/models "List all programs" --verbose
+python3 tools/orchestrate.py <registry_root> "List all products" --router lora
 ```
 
-If the router is confident, the query is dispatched to the matched route's LoRA adapter. If confidence is below the route's threshold, the orchestrator asks for clarification instead of guessing.
+Router options:
+
+- `--router lora` — uses the LoRA router adapter (recommended)
+- `--router embedding` — uses sentence-transformer cosine similarity
+- `--router hybrid` — LoRA first, embedding fallback
+- `--router keyword` — simple keyword matching
 
 Dry run (routes and resolves without calling vLLM):
 
 ```bash
-python3 tools/orchestrate.py /home/chris/models "Show me audience exports" --dry-run --verbose
+python3 tools/orchestrate.py <registry_root> "Show me products" --dry-run
 ```
 
 ### Persistent Modes
 
-The embedding router takes a few seconds to load the sentence-transformer model on first invocation. To keep it warm:
-
-**Interactive REPL** — loads the router once, then accepts queries instantly:
+**Interactive REPL** — loads the router once, accepts queries:
 
 ```bash
-python3 tools/orchestrate.py /home/chris/models --interactive
+python3 tools/orchestrate.py <registry_root> --interactive --router lora
 ```
 
-**HTTP server** — keeps the router warm and accepts POST requests:
+**HTTP server** — keeps the router warm, serves a web dashboard:
 
 ```bash
-python3 tools/orchestrate.py /home/chris/models --serve --serve-port 8080
+python3 tools/orchestrate.py <registry_root> --serve --serve-port 8080 --router lora
 ```
 
-Then query it:
+Query it:
 
 ```bash
-curl -s http://127.0.0.1:8080 -d '{"prompt": "list all programs"}' | python3 -m json.tool
+curl -s http://127.0.0.1:8080 -d '{"prompt": "list all products"}' | python3 -m json.tool
 ```
 
-### Router
+## Testing
 
-The orchestrator uses an embedding-based router by default (`tools/router.py:EmbeddingRouter`).
-
-It works by encoding route descriptions (`tools/route_descriptions.json`) and user queries with `all-MiniLM-L6-v2`, then ranking routes by cosine similarity. Confidence is calibrated so that the existing 0.8 clarification threshold works correctly — strong matches score > 0.9, noise scores near 0.
-
-Route description embeddings are cached to `tools/.cache/` as `.npy` files (keyed by SHA256 of the descriptions file). This avoids re-encoding descriptions on each startup — only the sentence-transformer model load remains.
-
-A keyword-matching fallback is available with `--router keyword`.
-
-To add or change route descriptions, edit `tools/route_descriptions.json`. Each key is a route key, each value is a comma-separated list of phrases a user might say.
-
-### Legacy Orchestrator Stub
-
-The older `orchestrate_vllm_chat.py` assumes you already know the route key. It is still available for direct dispatch:
+Test a single route:
 
 ```bash
-python3 tools/orchestrate_vllm_chat.py /home/chris/models videoamp/api/programs "List 5 programs" --print-payload
+python3 tools/test_vllm_chat.py <registry_root> acme/api/products "List 5 products"
+```
+
+Test all production routes:
+
+```bash
+python3 tools/test_all_routes.py <registry_root>
 ```
 
 ## Rollout Tools
@@ -147,27 +102,120 @@ python3 tools/orchestrate_vllm_chat.py /home/chris/models videoamp/api/programs 
 Register a candidate version:
 
 ```bash
-python3 tools/register_candidate.py /home/chris/models videoamp/api/programs v2 --weight 10
+python3 tools/register_candidate.py <registry_root> acme/api/products v2 --weight 10
 ```
 
 Promote a version to production:
 
 ```bash
-python3 tools/promote.py /home/chris/models videoamp/api/programs v2
+python3 tools/promote.py <registry_root> acme/api/products v2
 ```
 
 Roll back to a previous version:
 
 ```bash
-python3 tools/rollback.py /home/chris/models videoamp/api/programs v1
+python3 tools/rollback.py <registry_root> acme/api/products v1
 ```
+
+## Merged Model Serving
+
+As an alternative to multi-LoRA, adapters can be merged into a single full model via DARE-TIES (see trainLLM's `merge.py`). A merged model eliminates adapter swaps and enables KV cache sharing across multi-step chained calls.
+
+### Registry format
+
+Merged models use `"format": "merged-full"` in their manifest (vs `"peft-lora"` for adapters). The manifest also includes a `merge_config` block recording the merge method, density, and source adapters.
+
+### Serving
+
+`serve_vllm.py` auto-detects the format. If the resolved target is `merged-full`, it serves the model directly without `--enable-lora`:
+
+```bash
+python3 tools/serve_vllm.py <registry_root> videoamp/api-merged --port 8000
+```
+
+This produces a standard `vllm serve <model_path>` command with no LoRA flags.
+
+### Route configuration
+
+Merged routes use `"serving_mode": "merged"` in their `route.json` roleConfig and a separate `serving_pool` (e.g., `qwen25_coder_1p5b_merged`):
+
+```json
+{
+  "route_key": "videoamp/api-merged",
+  "kind": "leaf",
+  "roles": {
+    "responder": {
+      "base_model": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+      "serving_pool": "qwen25_coder_1p5b_merged",
+      "serving_mode": "merged",
+      "production": {"version": "v1"},
+      "candidates": []
+    }
+  }
+}
+```
+
+### Batch retraining with merge
+
+`retrain_all.py` supports an optional merge step after training all responder adapters:
+
+```bash
+python3 tools/retrain_all.py --merge --merge-density 0.9
+```
+
+This trains all adapters, then merges them via DARE-TIES and promotes the merged model to the registry.
+
+### Multi-LoRA vs. merged tradeoffs
+
+| | Multi-LoRA | Merged model |
+|---|---|---|
+| Serving | One base + many adapters | Single standalone model |
+| KV cache | Invalidated on adapter swap | Shared across all endpoints |
+| Quality | Per-endpoint specialization | Slight degradation from merge |
+| Multi-step chains | Each step recomputes KV | Second step reuses KV (sublinear) |
+| Adding endpoints | Train + register a new adapter | Retrain or re-merge |
+
+Both paths coexist — the registry, schemas, and serving tools support either format.
+
+## Importing Adapters
+
+Import a trained adapter from trainLLM's `result.json` into the registry:
+
+```bash
+python3 tools/import_adapter.py <registry_root> <route_key> <version> \
+  --result /path/to/result.json --promote
+```
+
+Example (LoRA adapter):
+
+```bash
+python3 tools/import_adapter.py ~/models acme/api/products v2 \
+  --result ~/git_home/trainLLM/lora/acme-api-products/final/result.json --promote
+```
+
+Example (merged model):
+
+```bash
+python3 tools/import_adapter.py ~/models acme/api-merged v1 \
+  --result ~/git_home/trainLLM/merged/default/result.json --promote
+```
+
+Without `--promote`, the version is registered as a candidate. Use `promote.py` to make it production later.
+
+### Deployment spec
+
+For batch retraining, `retrain_all.py` reads a deployment spec that locates trainLLM and per-endpoint configs:
+
+```bash
+python3 tools/retrain_all.py --spec deploy/spec.json
+```
+
+Copy `deploy/spec.example.json` to `deploy/spec.json` and fill in your paths. The spec is gitignored — each deployment has its own.
 
 ## Notes
 
 - The registry is the source of truth for production route-to-version mapping.
-- `vLLM` is the source of truth for inference execution.
-- The orchestrator should route to logical routes such as `videoamp/api/programs`, not directly to filesystem paths.
-- The current `vLLM` environment on this machine expects `transformers >= 4.56.0`.
-- The current launcher preloads production responder adapters for one base model family and exposes each route key as a named OpenAI model.
-- `HF_HOME` must be set to the expanded path containing the cached model. The tilde form (`~`) does not propagate to vLLM's EngineCore subprocess. Use the full absolute path.
-- The vLLM venv is at `/home/chris/vllm-install/.vllm`. vLLM version: `0.11.1rc4`.
+- vLLM is the source of truth for inference execution.
+- The orchestrator routes to logical route keys, not directly to filesystem paths.
+- `HF_HOME` must be set to the expanded absolute path containing the cached model (tilde form does not propagate to vLLM's EngineCore subprocess).
+- `--enforce-eager` may be needed if `torch.compile`/CUDA graphs cause issues with LoRA on your vLLM build.

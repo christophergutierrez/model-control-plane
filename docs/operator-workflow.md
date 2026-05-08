@@ -14,7 +14,7 @@ This document describes the expected workflow for a human operator or coding age
 3. Define one or more serving pools in `registry.yaml`.
 4. Add routes and version manifests only for models that actually exist.
 
-For the current reference backend, see [vllm.md](vllm.md).
+For the current serving backend, see [vllm.md](vllm.md).
 
 ## Adding a Route
 
@@ -33,6 +33,17 @@ For the current reference backend, see [vllm.md](vllm.md).
 6. Run validation.
 7. Update the route rollout policy if needed.
 
+## Retraining an Adapter
+
+1. Prepare or verify training data.
+2. Train the adapter (SFT). Optionally apply DPO for targeted corrections.
+3. Promote the trained adapter to the registry as a new version.
+4. Update the route's production pointer in `route.json`.
+5. Restart vLLM to pick up the new weights.
+6. Test the affected routes.
+
+When promoting, be aware of the adapter selection order: if a `dpo_final/` directory exists from a previous DPO pass, the promote logic will prefer it over the fresh SFT adapter. Remove stale DPO directories before promoting if you want pure SFT weights.
+
 ## Promoting a Candidate
 
 1. Validate the registry.
@@ -41,7 +52,7 @@ For the current reference backend, see [vllm.md](vllm.md).
 
 ## Low Confidence Behavior
 
-The router returns `route_key + confidence`.
+The router returns a route key and confidence score.
 
 If confidence is below the configured threshold:
 
@@ -62,7 +73,8 @@ This repository defines the contract, but it does not replace judgment about:
 
 If a coding agent is operating this repository or the runtime registry:
 
-1. start with [architecture.md](architecture.md)
-2. then read [ai-getting-started.md](ai-getting-started.md)
-3. validate the registry before changing rollout policy
-4. prefer changing route metadata over changing immutable version directories
+1. Start with [architecture.md](architecture.md).
+2. Then read [ai-getting-started.md](ai-getting-started.md).
+3. Validate the registry before changing rollout policy.
+4. Prefer changing route metadata over changing immutable version directories.
+5. After retraining, always restart vLLM — it loads adapters at startup and does not hot-reload.

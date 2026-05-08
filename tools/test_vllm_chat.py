@@ -25,7 +25,7 @@ def post_chat(base_url: str, payload: dict) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("registry_root", help="Path to the registry root")
-    parser.add_argument("route_key", help="Logical route key, e.g. videoamp/api/programs")
+    parser.add_argument("route_key", help="Logical route key, e.g. acme/api/products")
     parser.add_argument("prompt", help="User prompt")
     parser.add_argument("--role", choices=["router", "responder"], default="responder")
     parser.add_argument("--base-url", default="http://127.0.0.1:8000")

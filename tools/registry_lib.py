@@ -115,6 +115,7 @@ def list_production_targets(
     *,
     role: str = "responder",
     base_model: str | None = None,
+    format_filter: str | None = None,
 ) -> list[dict]:
     targets: list[dict] = []
     for route_key in list_route_keys(registry_root):
@@ -123,6 +124,8 @@ def list_production_targets(
             continue
         resolved = resolve_target(registry_root, route_key, requested_role=role, selector="production")
         if base_model is not None and resolved["base_model"] != base_model:
+            continue
+        if format_filter is not None and resolved["manifest"]["adapter"]["format"] != format_filter:
             continue
         targets.append(resolved)
     return targets

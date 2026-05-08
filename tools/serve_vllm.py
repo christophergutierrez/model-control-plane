@@ -18,6 +18,49 @@ def read_lora_rank(adapter_path: str) -> int:
     return int(data["r"])
 
 
+def serve_merged(args, anchor, extra_args) -> int:
+    """Serve a merged-full model directly (no LoRA)."""
+    model_path = anchor["adapter_path"]
+    served_name = args.served_model_name or f"{anchor['route_key']}-merged"
+
+    cmd = [
+        args.vllm,
+        "serve",
+        model_path,
+        "--host", args.host,
+        "--port", str(args.port),
+        "--served-model-name", served_name,
+    ]
+    if args.dtype:
+        cmd.extend(["--dtype", args.dtype])
+    if args.max_model_len is not None:
+        cmd.extend(["--max-model-len", str(args.max_model_len)])
+
+    if extra_args:
+        extra = extra_args
+        if extra and extra[0] == "--":
+            extra = extra[1:]
+        cmd.extend(extra)
+
+    print("Serving merged model:")
+    print(f"  model_path: {model_path}")
+    print(f"  served_name: {served_name}")
+    merge_cfg = anchor["manifest"]["adapter"].get("merge_config", {})
+    if merge_cfg:
+        print(f"  merge_method: {merge_cfg.get('method', 'unknown')}")
+        print(f"  density: {merge_cfg.get('density', 'unknown')}")
+        sources = merge_cfg.get("source_adapters", [])
+        if sources:
+            print(f"  source_adapters: {sources}")
+    print("vLLM command:")
+    print("  " + " ".join(shlex.quote(part) for part in cmd))
+
+    if args.print_only:
+        return 0
+
+    return subprocess.call(cmd)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("registry_root", help="Path to the registry root")
@@ -36,7 +79,13 @@ def main() -> int:
 
     registry_root = Path(args.registry_root).expanduser()
     anchor = resolve_target(registry_root, args.route_key, requested_role=args.role, selector="production")
-    targets = list_production_targets(registry_root, role=args.role, base_model=anchor["base_model"])
+
+    # If the resolved target is a merged model, serve it directly
+    if anchor["manifest"]["adapter"]["format"] == "merged-full":
+        return serve_merged(args, anchor, extra_args)
+
+    targets = list_production_targets(registry_root, role=args.role, base_model=anchor["base_model"],
+                                      format_filter="peft-lora")
 
     # Also load router adapter if available (for LoRA-based routing)
     router_targets = list_production_targets(registry_root, role="router", base_model=anchor["base_model"])
